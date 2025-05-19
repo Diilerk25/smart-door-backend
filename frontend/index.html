@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Door Camera</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    video {
+      width: 100%;
+      max-width: 360px;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    canvas {
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Smart Door Camera</h1>
+  <video id="video" autoplay playsinline></video>
+  <br>
+  <button id="snap">📸 Take Picture</button>
+  <canvas id="canvas" width="360" height="480"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const snap = document.getElementById('snap');
+
+    // Request access to the front camera
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user" // Use front camera
+      },
+      audio: false
+    })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert("Camera access denied or not available: " + err);
+    });
+
+    // Take a snapshot and send to backend
+    snap.addEventListener('click', () => {
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'block';
+      const imageData = canvas.toDataURL('image/png');
+
+      // Send image to backend
+      fetch("http://127.0.0.1:5000/upload", {  // Flask server address
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ image: imageData })  // Sending the image as a JSON string
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data.message);
+        alert("Image sent to server successfully.");
+      })
+      .catch(error => {
+        console.error("Error:", error);
+      });
+    });
+  </script>
+</body>
+</html>
